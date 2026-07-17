@@ -1,0 +1,219 @@
+# Absence-backend API requests (VSCode REST Client / HTTP file)
+# Set base URL below (default: http://localhost:8080)
+# After successful login, copy the returned token value into {{TOKEN}} (include without quotes).
+
+@baseUrl = http://localhost:8080
+# Set this to a valid employee id before sending absence requests.
+# @EMPLOYEE_ID = 4
+@LOGIN_EMAIL = ava.smith@company.com
+@LOGIN_PASSWORD = ChangeMe123!
+
+### Create an Employer
+POST {{baseUrl}}/api/employers
+Content-Type: application/json
+
+{
+  "name": "Acme Corp",
+  "publicHolidayRegion": "ENGLAND_AND_WALES",
+  "publicHolidaysIncludedInEntitlement": true
+}
+
+### Register an Employee (manager)
+POST {{baseUrl}}/api/employees
+Content-Type: application/json
+
+{
+  "firstName": "Ava",
+  "lastName": "Smith",
+  "payrollNumber": "EMP-1001",
+  "email": "{{LOGIN_EMAIL}}",
+  "password": "{{LOGIN_PASSWORD}}",
+  "role": "MANAGER",
+  "employerName": "Acme Corp"
+}
+
+### Login (get bearer token)
+
+POST {{baseUrl}}/api/employees/login
+Content-Type: application/json
+
+{
+  "email": "{{LOGIN_EMAIL}}",
+  "password": "{{LOGIN_PASSWORD}}"
+}
+
+
+### Copy data.token from response and set as {{TOKEN}} for the requests below --
+### Get engagements for an employee
+@TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhdmEuc21pdGhAY29tcGFueS5jb20iLCJpYXQiOjE3ODM2Mzk2NDMsImV4cCI6MTc4MzY2ODQ0M30._3LN1-ZBMnLGKrixMhJcooyf0yy4PRvN3qHnIIBZsjo
+@EMPLOYEE_ID = 7
+@ENGAGEMENT_ID = 4
+@WORK_PATTERN_ID = 1
+@TERM_ID=1
+GET {{baseUrl}}/api/employees/{{EMPLOYEE_ID}}/engagements
+Authorization: Bearer {{TOKEN}}
+
+
+
+### Create a work pattern
+POST {{baseUrl}}/api/work-patterns
+Content-Type: application/json
+Authorization: Bearer {{TOKEN}}
+
+{
+  "description": "Standard Monday-Friday pattern",
+  "dayHours": {
+    "MONDAY": 8.0,
+    "TUESDAY": 8.0,
+    "WEDNESDAY": 8.0,
+    "THURSDAY": 8.0,
+    "FRIDAY": 8.0
+  }
+}
+
+
+
+### Create a term
+POST {{baseUrl}}/api/terms
+Content-Type: application/json
+Authorization: Bearer {{TOKEN}}
+
+{
+  "engagementId": {{ENGAGEMENT_ID}},
+  "workPatternId": {{WORK_PATTERN_ID}},
+  "startDate": "2026-07-10",
+  "endDate": "2027-07-09",
+  "annualEntitlementDays": 28.0,
+  "roundingPolicy": "ROUND_NEAREST_HALF_DAY",
+  "carriedOverDays": 0.0
+}
+
+
+
+### Create a holiday year
+POST {{baseUrl}}/api/holiday-years
+Content-Type: application/json
+Authorization: Bearer {{TOKEN}}
+
+{
+  "engagementId": {{ENGAGEMENT_ID}},
+  "startDate": "2026-07-10",
+  "endDate": "2027-07-09",
+  "carryOverLimitDays": 5.0,
+  "carriedOverDays": 0.0,
+  "extraHolidayDays": 0.0
+}
+
+> {%
+client.global.set("HOLIDAY_YEAR_ID", response.body.data.id);
+%}
+
+### Get all employees (protected)
+# Set this after login, for example:
+# @TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+GET {{baseUrl}}/api/employees
+Authorization: Bearer {{TOKEN}}
+
+
+### Get employee by id (protected)
+GET {{baseUrl}}/api/employees/6
+Authorization: Bearer {{TOKEN}}
+
+
+### Create a planned absence (holiday)
+ # Set this to the employee id returned by the API.
+POST {{baseUrl}}/api/absences/planned
+Content-Type: application/json
+Authorization: Bearer {{TOKEN}}
+
+{
+  "employeeId": {{EMPLOYEE_ID}},
+  "type": "HOLIDAY",
+  "startDate": "2026-08-01",
+  "endDate": "2026-08-05",
+  "otherLeaveCategory": null,
+  "notes": "Family holiday"
+}
+
+### Approve a requested absence (protected)
+# Replace {absenceId} with the created absence id from the previous response
+POST {{baseUrl}}/api/absences/1/approve
+Authorization: Bearer {{TOKEN}}
+
+
+### Reject a requested absence (protected)
+# Replace {absenceId} with the created absence id
+POST {{baseUrl}}/api/absences/1/reject
+Authorization: Bearer {{TOKEN}}
+
+
+### Record an unplanned absence (sickness)
+POST {{baseUrl}}/api/absences/unplanned
+Content-Type: application/json
+Authorization: Bearer {{TOKEN}}
+
+{
+  "employeeId": 1,
+  "type": "SICKNESS",
+  "startDate": "2026-07-01",
+  "endDate": "2026-07-03",
+  "recordedBy": "EMPLOYEE",
+  "notes": "Flu"
+}
+
+### Get all absences for an employee (protected)
+GET {{baseUrl}}/api/absences/employee/{{EMPLOYEE_ID}}
+Authorization: Bearer {{TOKEN}}
+
+
+### Bradford factor (protected)
+GET {{baseUrl}}/api/absences/employee/{{EMPLOYEE_ID}}/bradford-factor?from=2026-01-01&to=2026-12-31
+Authorization: Bearer {{TOKEN}}
+
+
+### Sickness statistics (protected)
+GET {{baseUrl}}/api/absences/employee/{{EMPLOYEE_ID}}/statistics?from=2026-01-01&to=2026-12-31
+Authorization: Bearer {{TOKEN}}
+
+
+### Absence pattern by day (protected)
+GET {{baseUrl}}/api/absences/employee/{{EMPLOYEE_ID}}/pattern-by-day
+Authorization: Bearer {{TOKEN}}
+
+
+### Get employees for an employer (protected)
+GET {{baseUrl}}/api/employers/1/employees
+Authorization: Bearer {{TOKEN}}
+
+
+### Entitlement calculation (protected)
+# Uses TERM_ID and HOLIDAY_YEAR_ID from the setup requests above
+GET {{baseUrl}}/api/entitlement/term/{{TERM_ID}}/holiday-year/{{HOLIDAY_YEAR_ID}}
+Authorization: Bearer {{TOKEN}}
+
+
+### Update employer (protected)
+PUT {{baseUrl}}/api/employers/1
+Content-Type: application/json
+Authorization: Bearer {{TOKEN}}
+
+{
+  "name": "Acme Corporation Updated",
+  "publicHolidayRegion": "SCOTLAND",
+  "publicHolidaysIncludedInEntitlement": false
+}
+
+
+### Delete employer (protected)
+DELETE {{baseUrl}}/api/employers/1
+Authorization: Bearer {{TOKEN}}
+
+
+### Delete employee (protected)
+DELETE {{baseUrl}}/api/employees/1
+Authorization: Bearer {{TOKEN}}
+
+# Notes:
+# - Replace numeric ids (1) with the actual ids created by the API responses.
+# - For Swagger interactive testing, the docs are at /swagger-ui and /v1/api-docs.
+# - If using curl instead of the REST client, convert requests accordingly.
