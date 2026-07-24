@@ -95,8 +95,8 @@ public class AbsenceService {
     }
 
     @Transactional
-    public Absence processLeaveDecision(Long absenceId, String decision, String approverPayrollNumber) {
-       ensureApproverCanApproveLeave(approverPayrollNumber);
+    public Absence processLeaveDecision(Long absenceId, String decision, String approverEmail) {
+       ensureApproverCanApproveLeave(approverEmail);
        Absence absence = getAbsence(absenceId);
         
        if (absence.getStatus() != AbsenceStatus.REQUESTED) {
@@ -200,9 +200,9 @@ public class AbsenceService {
                 .orElseThrow(() -> new IllegalArgumentException("Absence not found: " + id));
     }
 
-    private void ensureApproverCanApproveLeave(String payrollNumber) {
-        Employee approver = employeeRepository.findByPayrollNumber(payrollNumber)
-                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + payrollNumber));
+    private void ensureApproverCanApproveLeave(String approverEmail) {
+        Employee approver = employeeRepository.findByEmail(approverEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + approverEmail));
         if (!approver.canApproveLeave()) {
             throw new ForbiddenOperationException("Only managers or C-level executives can approve or reject leave");
         }

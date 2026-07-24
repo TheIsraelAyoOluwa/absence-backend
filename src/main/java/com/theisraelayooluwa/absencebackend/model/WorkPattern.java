@@ -1,5 +1,6 @@
 package com.theisraelayooluwa.absencebackend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -36,6 +37,11 @@ public class WorkPattern {
 
     @Column(nullable = false)
     private String description;
+
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "employer_id")
+    private Employer employer;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "work_pattern_days", joinColumns = @JoinColumn(name = "work_pattern_id"))

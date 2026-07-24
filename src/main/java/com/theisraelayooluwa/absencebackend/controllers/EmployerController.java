@@ -7,6 +7,7 @@ import com.theisraelayooluwa.absencebackend.dto.EmployerLoginRequest;
 import com.theisraelayooluwa.absencebackend.dto.EmployerLoginResponse;
 import com.theisraelayooluwa.absencebackend.dto.EmployerOnboardingDto;
 import com.theisraelayooluwa.absencebackend.dto.EmployerDto;
+import com.theisraelayooluwa.absencebackend.dto.EmployerSummaryDto;
 import com.theisraelayooluwa.absencebackend.model.Employee;
 import com.theisraelayooluwa.absencebackend.model.Employer;
 import com.theisraelayooluwa.absencebackend.repository.EmployeeRepository;
@@ -27,6 +28,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 
 @RestController
@@ -56,6 +58,16 @@ public class EmployerController {
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.tokenService = tokenService;
+    }
+
+    @GetMapping
+    @Operation(summary = "List all employers (public, for the employee signup picker)")
+    public ResponseEntity<ApiResponse<List<EmployerSummaryDto>>> listEmployers() {
+        List<EmployerSummaryDto> employers = employerRepository.findAll().stream()
+                .map(employer -> new EmployerSummaryDto(employer.getId(), employer.getName()))
+                .sorted(Comparator.comparing(EmployerSummaryDto::name, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+        return ResponseEntity.ok(new ApiResponse<>(HttpStatus.OK.value(), "Employers retrieved", employers));
     }
 
     @PostMapping("/onboard")

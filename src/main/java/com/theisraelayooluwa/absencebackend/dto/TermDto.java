@@ -18,7 +18,7 @@ public record TermDto(
         LocalDate endDate,
         @Schema(example = "224.0")
         Double annualEntitlementHours,
-        @Schema(example = "ROUND_NEAREST_HALF_DAY")
+        @Schema(example = "ROUND_NEAREST_HALF_HOUR")
         RoundingPolicy roundingPolicy,
         @Schema(example = "0.0")
         Double carriedOverHours

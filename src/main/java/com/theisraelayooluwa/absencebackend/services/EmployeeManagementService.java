@@ -60,6 +60,12 @@ public class EmployeeManagementService {
         Employer employer = employerRepository.findFirstByNameIgnoreCaseOrderByIdAsc(dto.employerName())
                 .orElseThrow(() -> new IllegalArgumentException("Employer not found: " + dto.employerName()));
 
+        WorkPattern workPattern = workPatternRepository.findById(dto.workPatternId())
+                .orElseThrow(() -> new IllegalArgumentException("Work pattern not found: " + dto.workPatternId()));
+        if (workPattern.getEmployer() == null || !workPattern.getEmployer().getId().equals(employer.getId())) {
+            throw new IllegalArgumentException("Work pattern does not belong to employer: " + dto.employerName());
+        }
+
         Employee employee = new Employee();
         employee.setFirstName(dto.firstName());
         employee.setLastName(dto.lastName());
@@ -68,6 +74,7 @@ public class EmployeeManagementService {
         employee.setPasswordHash(passwordEncoder.encode(dto.password()));
         employee.setRole(dto.role());
         employee.setEmployer(employer);
+        employee.setWorkPattern(workPattern);
         // New employees start in PENDING state - employers must approve before login is allowed
         employee.setApprovalStatus(Employee.ApprovalStatus.PENDING);
         // Inherit employer's working criteria and daily hours if not specified by employee
@@ -97,7 +104,7 @@ public class EmployeeManagementService {
         employee.setApprovalStatus(Employee.ApprovalStatus.APPROVED);
         Employee savedEmployee = employeeRepository.save(employee);
 
-        // Create employment records when employee is approved: Engagement, WorkPattern, Term, HolidayYear
+        // Create employment records when employee is approved: Engagement, Term, HolidayYear
         // These must exist before employee can request leave
         Engagement engagement = new Engagement();
         engagement.setEmployee(savedEmployee);
@@ -105,16 +112,22 @@ public class EmployeeManagementService {
         engagement.setStartDate(LocalDate.now());
         Engagement savedEngagement = engagementRepository.save(engagement);
 
-        WorkPattern workPattern = new WorkPattern();
-        workPattern.setDescription("Default " + savedEmployee.getWorkingCriteria() + " pattern");
-        Map<java.time.DayOfWeek, Double> dayHours = new EnumMap<>(java.time.DayOfWeek.class);
-        dayHours.put(java.time.DayOfWeek.MONDAY, dailyHours);
-        dayHours.put(java.time.DayOfWeek.TUESDAY, dailyHours);
-        dayHours.put(java.time.DayOfWeek.WEDNESDAY, dailyHours);
-        dayHours.put(java.time.DayOfWeek.THURSDAY, dailyHours);
-        dayHours.put(java.time.DayOfWeek.FRIDAY, dailyHours);
-        workPattern.setDayHours(dayHours);
-        WorkPattern savedPattern = workPatternRepository.save(workPattern);
+        // Reuse the work pattern the employee selected from the employer's catalog at signup.
+        // Legacy employees registered before that field existed fall back to an auto-generated default.
+        WorkPattern savedPattern = savedEmployee.getWorkPattern();
+        if (savedPattern == null) {
+            WorkPattern workPattern = new WorkPattern();
+            workPattern.setDescription("Default " + savedEmployee.getWorkingCriteria() + " pattern");
+            workPattern.setEmployer(employer);
+            Map<java.time.DayOfWeek, Double> dayHours = new EnumMap<>(java.time.DayOfWeek.class);
+            dayHours.put(java.time.DayOfWeek.MONDAY, dailyHours);
+            dayHours.put(java.time.DayOfWeek.TUESDAY, dailyHours);
+            dayHours.put(java.time.DayOfWeek.WEDNESDAY, dailyHours);
+            dayHours.put(java.time.DayOfWeek.THURSDAY, dailyHours);
+            dayHours.put(java.time.DayOfWeek.FRIDAY, dailyHours);
+            workPattern.setDayHours(dayHours);
+            savedPattern = workPatternRepository.save(workPattern);
+        }
 
         Term term = new Term();
         term.setEngagement(savedEngagement);

@@ -59,10 +59,10 @@ public class Term {
     @Column(name = "annual_entitlement_hours", nullable = false)
     private double annualEntitlementHours = Employee.STATUTORY_MINIMUM_HOLIDAY_DAYS * 8.0;
 
-    @Schema(example = "ROUND_NEAREST_HALF_DAY")
+    @Schema(example = "ROUND_NEAREST_HALF_HOUR")
     @Enumerated(EnumType.STRING)
     @Column(name = "rounding_policy", nullable = false)
-    private RoundingPolicy roundingPolicy = RoundingPolicy.ROUND_NEAREST_HALF_DAY;
+    private RoundingPolicy roundingPolicy = RoundingPolicy.ROUND_NEAREST_HALF_HOUR;
 
     /** Hours of unused holiday carried over from the previous Term (usually unlimited). */
     @Schema(example = "0.0")

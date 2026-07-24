@@ -4,6 +4,7 @@ import com.theisraelayooluwa.absencebackend.dto.AbsenceDecisionDto;
 import com.theisraelayooluwa.absencebackend.dto.RecordAbsenceDto;
 import com.theisraelayooluwa.absencebackend.model.Absence;
 import com.theisraelayooluwa.absencebackend.services.AbsenceService;
+import com.theisraelayooluwa.absencebackend.services.EmployeeAccessService;
 import com.theisraelayooluwa.absencebackend.services.LeaveUnitService;
 import com.theisraelayooluwa.absencebackend.services.SicknessPatternService;
 import jakarta.validation.Valid;
@@ -32,13 +33,16 @@ public class AbsenceController {
     private final AbsenceService absenceService;
     private final SicknessPatternService sicknessPatternService;
     private final LeaveUnitService leaveUnitService;
+    private final EmployeeAccessService employeeAccessService;
 
     public AbsenceController(AbsenceService absenceService,
                              SicknessPatternService sicknessPatternService,
-                             LeaveUnitService leaveUnitService) {
+                             LeaveUnitService leaveUnitService,
+                             EmployeeAccessService employeeAccessService) {
         this.absenceService = absenceService;
         this.sicknessPatternService = sicknessPatternService;
         this.leaveUnitService = leaveUnitService;
+        this.employeeAccessService = employeeAccessService;
     }
 
 
@@ -69,7 +73,8 @@ public class AbsenceController {
     @GetMapping("/employee/{employeeId}")
     @Operation(summary = "Get all absences for an employee")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<List<Absence>>> getForEmployee(@PathVariable Long employeeId) {
+    public ResponseEntity<ApiResponse<List<Absence>>> getForEmployee(@PathVariable Long employeeId, Authentication authentication) {
+        employeeAccessService.ensureCanView(authentication.getName(), employeeId);
         return ResponseEntity.ok(new ApiResponse<>(HttpStatus.OK.value(), "Absences retrieved", absenceService.getAbsencesForEmployee(employeeId)));
     }
 
@@ -94,7 +99,9 @@ public class AbsenceController {
     public ResponseEntity<ApiResponse<SicknessPatternService.BradfordFactorResult>> bradfordFactor(
             @Parameter(description = "Employee id", example = "1") @PathVariable Long employeeId,
             @Parameter(description = "Start date", example = "2026-01-01") @RequestParam LocalDate from,
-            @Parameter(description = "End date", example = "2026-12-31") @RequestParam LocalDate to) {
+            @Parameter(description = "End date", example = "2026-12-31") @RequestParam LocalDate to,
+            Authentication authentication) {
+        employeeAccessService.ensureCanView(authentication.getName(), employeeId);
         return ResponseEntity.ok(new ApiResponse<>(HttpStatus.OK.value(), "Bradford factor calculated",
                 sicknessPatternService.calculateBradfordFactor(employeeId, from, to)));
     }
@@ -105,7 +112,9 @@ public class AbsenceController {
     public ResponseEntity<ApiResponse<SicknessPatternService.SicknessStatistics>> statistics(
             @Parameter(description = "Employee id", example = "1") @PathVariable Long employeeId,
             @Parameter(description = "Start date", example = "2026-01-01") @RequestParam LocalDate from,
-            @Parameter(description = "End date", example = "2026-12-31") @RequestParam LocalDate to) {
+            @Parameter(description = "End date", example = "2026-12-31") @RequestParam LocalDate to,
+            Authentication authentication) {
+        employeeAccessService.ensureCanView(authentication.getName(), employeeId);
         return ResponseEntity.ok(new ApiResponse<>(HttpStatus.OK.value(), "Sickness statistics calculated",
                 sicknessPatternService.calculateStatistics(employeeId, from, to)));
     }
@@ -113,7 +122,8 @@ public class AbsenceController {
     @GetMapping("/employee/{employeeId}/pattern-by-day")
     @Operation(summary = "Get absence pattern by day of week")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<Map<DayOfWeek, Long>>> patternByDay(@PathVariable Long employeeId) {
+    public ResponseEntity<ApiResponse<Map<DayOfWeek, Long>>> patternByDay(@PathVariable Long employeeId, Authentication authentication) {
+        employeeAccessService.ensureCanView(authentication.getName(), employeeId);
         return ResponseEntity.ok(new ApiResponse<>(HttpStatus.OK.value(), "Absence pattern retrieved",
                 sicknessPatternService.absencesByDayOfWeek(employeeId)));
     }

@@ -25,6 +25,8 @@ public record EmployeeDto(
         @Schema(example = "8.0")
         Double dailyHours,
         @Schema(description = "Employer name to link the employee to", example = "Acme Corp")
-        @NotBlank String employerName
+        @NotBlank String employerName,
+        @Schema(description = "Work pattern selected from the employer's catalog", example = "1")
+        @NotNull Long workPatternId
 ) {
 }

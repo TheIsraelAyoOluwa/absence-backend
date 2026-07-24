@@ -52,9 +52,13 @@ public class SecurityConfig {
                                 "/error"
                                 ).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/employers/onboard", "/api/employers/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/employers").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/employers/*/work-patterns").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/employees/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/employees").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/work-patterns").hasRole("EMPLOYER")
+                        .requestMatchers("/api/terms").hasAnyRole("MANAGER", "C_LEVEL_EXECUTIVE")
                         .requestMatchers(HttpMethod.POST, "/api/absences/*/approve", "/api/absences/*/reject").hasAnyRole("MANAGER", "C_LEVEL_EXECUTIVE")
                         .anyRequest().authenticated()
                 )

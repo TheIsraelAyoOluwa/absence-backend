@@ -15,7 +15,7 @@ public enum RoundingPolicy {
             return value.setScale(1, RoundingMode.FLOOR);
         }
     },
-    ROUND_NEAREST_HALF_DAY {
+    ROUND_NEAREST_HALF_HOUR {
         public BigDecimal apply(BigDecimal value) {
             return value.multiply(BigDecimal.valueOf(2))
                     .setScale(0, RoundingMode.HALF_UP)

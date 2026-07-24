@@ -7,6 +7,7 @@ import com.theisraelayooluwa.absencebackend.dto.LoginRequest;
 import com.theisraelayooluwa.absencebackend.dto.LoginResponse;
 import com.theisraelayooluwa.absencebackend.model.Employee;
 import com.theisraelayooluwa.absencebackend.repository.EmployeeRepository;
+import com.theisraelayooluwa.absencebackend.services.EmployeeAccessService;
 import com.theisraelayooluwa.absencebackend.services.EmployeeManagementService;
 import com.theisraelayooluwa.absencebackend.services.EntityMapperService;
 import jakarta.validation.Valid;
@@ -17,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -32,31 +34,40 @@ public class EmployeeController {
     private final com.theisraelayooluwa.absencebackend.security.TokenService tokenService;
     private final EmployeeManagementService employeeManagementService;
     private final EntityMapperService entityMapperService;
+    private final EmployeeAccessService employeeAccessService;
 
     public EmployeeController(EmployeeRepository employeeRepository,
                               AuthenticationManager authenticationManager,
                               com.theisraelayooluwa.absencebackend.security.TokenService tokenService,
                               EmployeeManagementService employeeManagementService,
-                              EntityMapperService entityMapperService) {
+                              EntityMapperService entityMapperService,
+                              EmployeeAccessService employeeAccessService) {
         this.employeeRepository = employeeRepository;
         this.authenticationManager = authenticationManager;
         this.tokenService = tokenService;
         this.employeeManagementService = employeeManagementService;
         this.entityMapperService = entityMapperService;
+        this.employeeAccessService = employeeAccessService;
     }
 
     @GetMapping
-    @Operation(summary = "Get all employees")
+    @Operation(summary = "Get employees within the caller's own company")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<List<EmployeeDirectoryDto>>> getAll() {
+    public ResponseEntity<ApiResponse<List<EmployeeDirectoryDto>>> getAll(Authentication authentication) {
+        Employee caller = employeeRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + authentication.getName()));
+        List<Employee> companyEmployees = caller.getEmployer() != null
+                ? employeeRepository.findByEmployerIdOrderByLastNameAsc(caller.getEmployer().getId())
+                : List.of(caller);
         return ResponseEntity.ok(new ApiResponse<>(HttpStatus.OK.value(), "Employees retrieved",
-                entityMapperService.toEmployeeDirectoryDtos(employeeRepository.findAll())));
+                entityMapperService.toEmployeeDirectoryDtos(companyEmployees)));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get employee by id")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<EmployeeDirectoryDto>> getById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<EmployeeDirectoryDto>> getById(@PathVariable Long id, Authentication authentication) {
+        employeeAccessService.ensureCanView(authentication.getName(), id);
         return employeeRepository.findById(id)
                 .map(employee -> ResponseEntity.ok(new ApiResponse<>(HttpStatus.OK.value(), "Employee retrieved", EmployeeDirectoryDto.from(employee))))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)

@@ -84,7 +84,7 @@ Authorization: Bearer {{TOKEN}}
   "startDate": "2026-07-10",
   "endDate": "2027-07-09",
   "annualEntitlementDays": 28.0,
-  "roundingPolicy": "ROUND_NEAREST_HALF_DAY",
+  "roundingPolicy": "ROUND_NEAREST_HALF_HOUR",
   "carriedOverDays": 0.0
 }
 

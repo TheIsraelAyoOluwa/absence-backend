@@ -46,6 +46,12 @@ public class Employee {
     @JoinColumn(name = "employer_id")
     private Employer employer;
 
+    @Schema(description = "Work pattern selected at signup, from the employer's catalog", accessMode = Schema.AccessMode.READ_ONLY)
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "work_pattern_id")
+    private WorkPattern workPattern;
+
     @Schema(example = "PENDING")
     @Enumerated(EnumType.STRING)
     @Column(name = "approval_status")
